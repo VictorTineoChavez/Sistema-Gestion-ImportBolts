@@ -30,7 +30,7 @@ Sistema web integral (ERP) desarrollado para automatizar el flujo comercial y lo
 
 1. Clonar el repositorio:
    ```bash
-   git clone [https://github.com/TU_USUARIO/ImportBolts-System.git](https://github.com/TU_USUARIO/ImportBolts-System.git)
+   git clone [https://github.com/VictorTineoChavez/Sistema-Gestion-ImportBolts.git](https://github.com/VictorTineoChavez/Sistema-Gestion-ImportBolts.git)
 
 2. Instalar dependencias:
 
@@ -49,5 +49,6 @@ python setup_db.py
 Bash
 
 python app.py
+
 
 5. Acceder en el navegador: http://127.0.0.1:5000
