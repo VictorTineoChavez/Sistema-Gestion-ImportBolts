@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📊 Kardex (Auditoría de Inventario)</h2>
+    <div class="d-flex gap-2">
+        <span class="badge bg-success-subtle text-success border border-success d-flex align-items-center">
+            <i class="bi bi-arrow-up-circle me-1"></i> Entradas
+        </span>
+        <span class="badge bg-danger-subtle text-danger border border-danger d-flex align-items-center">
+            <i class="bi bi-arrow-down-circle me-1"></i> Salidas
+        </span>
+        <a href="{{ url_for('inventario') }}" class="btn btn-outline-secondary btn-sm ms-2">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+<div class="card mb-4 bg-light border-0 shadow-sm">
+    <div class="card-body py-3">
+        <form class="row g-2 align-items-end" method="GET">
+            
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Buscar</label>
+                <input type="text" name="busqueda" class="form-control form-control-sm" 
+                       placeholder="SKU / Motivo..." value="{{ request.args.get('busqueda', '') }}">
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Categoría</label>
+                <select name="categoria" class="form-select form-select-sm">
+                    <option value="todas">Todas</option>
+                    {% for c in categorias %}
+                    <option value="{{ c.nombre }}" {% if request.args.get('categoria') == c.nombre %}selected{% endif %}>
+                        {{ c.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Tipo Mov.</label>
+                <select name="tipo" class="form-select form-select-sm fw-bold text-primary">
+                    <option value="" class="text-dark">-- Todos --</option>
+                    <option value="ENTRADA" class="text-success" {% if request.args.get('tipo') == 'ENTRADA' %}selected{% endif %}>
+                        ➕ ENTRADAS
+                    </option>
+                    <option value="SALIDA" class="text-danger" {% if request.args.get('tipo') == 'SALIDA' %}selected{% endif %}>
+                        ➖ SALIDAS
+                    </option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Desde</label>
+                <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ request.args.get('fecha_inicio', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Hasta</label>
+                <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ request.args.get('fecha_fin', '') }}">
+            </div>
+
+            <div class="col-md-2 d-grid gap-2 d-md-block text-end">
+                <button type="submit" class="btn btn-primary btn-sm px-3" title="Aplicar Filtros">
+                    <i class="bi bi-filter"></i>
+                </button>
+                <a href="{{ url_for('ver_kardex') }}" class="btn btn-outline-secondary btn-sm" title="Limpiar Filtros">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover mb-0 align-middle small">
+            <thead class="table-dark text-nowrap">
+                <tr>
+                    <th>Fecha / Hora</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th class="text-center">Tipo</th>
+                    <th>Motivo / Referencia</th>
+                    <th>Usuario</th>
+                    <th class="text-center">Cant.</th>
+                    <th class="text-center">Saldo Final</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movimientos %}
+                <tr>
+                    <td class="text-muted">{{ m.fecha.strftime('%d/%m/%y %H:%M') }}</td>
+                    
+                    <td>
+                        <strong class="d-block text-dark">{{ m.product.sku }}</strong>
+                        <span class="text-secondary">{{ m.product.nombre }}</span>
+                    </td>
+                    
+                    <td><span class="badge bg-light text-dark border">{{ m.product.categoria }}</span></td>
+                    
+                    <td class="text-center">
+                        {% if m.tipo == 'ENTRADA' %}
+                            <span class="badge bg-success-subtle text-success border border-success px-3">ENTRADA</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger px-3">SALIDA</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="fst-italic text-truncate" style="max-width: 200px;" title="{{ m.motivo }}">
+                        {{ m.motivo }}
+                    </td>
+                    
+                    <td>
+                        <i class="bi bi-person-fill text-secondary"></i> {{ m.user.username }}
+                    </td>
+                    
+                    <td class="text-center fw-bold fs-6 {% if m.tipo == 'ENTRADA' %}text-success{% else %}text-danger{% endif %}">
+                        {% if m.tipo == 'ENTRADA' %}+{% else %}-{% endif %}{{ m.cantidad }}
+                    </td>
+                    
+                    <td class="text-center bg-light fw-bold text-dark border-start">
+                        {{ m.stock_nuevo }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-search display-4 opacity-25"></i>
+                        <p class="mt-2">No se encontraron movimientos con estos filtros.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

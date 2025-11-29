@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>👋 Hola, {{ session.get('nombre') }}</h2>
+<p class="text-muted">Resumen de tu desempeño</p>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-light border-primary h-100">
+            <div class="card-body text-center">
+                <h5 class="text-primary">Tus Ventas Hoy</h5>
+                <h2 class="fw-bold">S/ {{ "%.2f"|format(hoy) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light border-success h-100">
+            <div class="card-body text-center">
+                <h5 class="text-success">Tu Acumulado Mes</h5>
+                <h2 class="fw-bold">S/ {{ "%.2f"|format(mes) }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-light border-warning h-100">
+            <div class="card-body text-center">
+                <h5 class="text-dark">Tus Pendientes</h5>
+                <h2 class="fw-bold">{{ pendientes }}</h2>
+                <a href="{{ url_for('historial_ventas') }}" class="btn btn-sm btn-outline-dark">Ver Listado</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Tus Últimas Cotizaciones</div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
+            <tbody>
+                {% for o in ultimas %}
+                <tr>
+                    <td>{{ o.cliente.nombre }}</td>
+                    <td>{{ o.fecha.strftime('%d/%m') }}</td>
+                    <td>S/ {{ "%.2f"|format(o.total) }}</td>
+                    <td>{{ o.estado }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImportBolts SAC - Sistema de Gestión</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    
+    <style>
+        /* Estilos personalizados rápidos */
+        body { transition: background-color 0.3s, color 0.3s; }
+        .navbar-brand { font-weight: bold; letter-spacing: 1px; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-gear-fill"></i> IMPORTBOLTS
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {% if session.get('user_id') %}
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Dashboard</a>
+                    </li>
+
+                    {% if session.get('role') in ['admin', 'vendedor', 'administracion'] %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('nueva_venta') }}">Nueva Cotización</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('historial_ventas') }}">Historial Ventas</a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('inventario') }}">Inventario</a>
+                    </li>
+                    {% if session.get('role') in ['admin', 'almacen'] %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('despachos') }}">Despachos</a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('role') in ['admin', 'administracion'] %}
+                    <li class="nav-item">
+                        <a class="nav-link text-warning" href="{{ url_for('cobranzas') }}">Cobranzas</a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('role') == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('gestion_usuarios') }}"> <i class="bi bi-people-fill"></i> Usuarios
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.get('role') in ['admin', 'administracion'] %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('reportes_predicciones') }}">
+                            <i class="bi bi-graph-up-arrow"></i> Predicciones
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item me-3">
+                        <button class="btn btn-outline-light btn-sm mt-1" id="darkModeToggle">
+                            <i class="bi bi-moon-stars-fill"></i>
+                        </button>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ session.get('username') }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Cerrar Sesión</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const toggleBtn = document.getElementById('darkModeToggle');
+        const htmlElement = document.documentElement;
+
+        // 1. Cargar preferencia guardada
+        if (localStorage.getItem('theme') === 'dark') {
+            htmlElement.setAttribute('data-bs-theme', 'dark');
+        }
+
+        // 2. Al hacer clic
+        if(toggleBtn){
+            toggleBtn.addEventListener('click', () => {
+                if (htmlElement.getAttribute('data-bs-theme') === 'dark') {
+                    htmlElement.setAttribute('data-bs-theme', 'light');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    htmlElement.setAttribute('data-bs-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

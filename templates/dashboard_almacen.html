@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="mb-4">
+    <h2>📦 Centro de Control Logístico</h2>
+    <p class="text-muted small">Gestión operativa de despacho y stock</p>
+</div>
+
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold mb-0">{{ por_despachar }}</h1>
+                <h6 class="text-uppercase opacity-75 fw-bold">Por Despachar</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold mb-0">{{ en_ruta }}</h1>
+                <h6 class="text-uppercase opacity-75 fw-bold">En Ruta / Despachados</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white h-100 shadow-sm border-0">
+            <div class="card-body text-center">
+                <h1 class="display-4 fw-bold mb-0">{{ entregados }}</h1>
+                <h6 class="text-uppercase opacity-75 fw-bold">Entregados Hoy</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-7">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header bg-white fw-bold py-3 border-bottom">
+                🚛 Próximas Entregas (Prioridad)
+            </div>
+            <div class="list-group list-group-flush">
+                {% for o in prioritarios %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                    <div>
+                        <span class="badge bg-primary mb-1">{{ o.fecha_entrega.strftime('%d/%m') }}</span>
+                        <strong class="d-block">{{ o.cliente.nombre }}</strong>
+                        <small class="text-muted">#COT-{{ "%04d"|format(o.id) }}</small>
+                    </div>
+                    <a href="{{ url_for('despachos') }}" class="btn btn-sm btn-outline-primary">
+                        Procesar <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted">
+                    <i class="bi bi-check-circle display-4 text-success opacity-25"></i>
+                    <p class="mt-2">No hay pedidos pendientes.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card h-100 shadow-sm border border-danger">
+            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center py-3">
+                <span class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Stock Crítico</span>
+                <span class="badge bg-white text-danger rounded-pill">{{ total_alertas }}</span>
+            </div>
+            
+            <div class="list-group list-group-flush small">
+                {% for p in alertas %}
+                <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+                    <div>
+                        <strong class="text-danger">{{ p.sku }}</strong>
+                        <br>
+                        <span class="text-muted text-truncate d-inline-block" style="max-width: 180px;">{{ p.nombre }}</span>
+                    </div>
+                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                        {{ p.stock_actual }} un.
+                    </span>
+                </div>
+                {% else %}
+                <div class="p-3 text-center text-muted">Inventario saludable.</div>
+                {% endfor %}
+            </div>
+
+            {% if total_alertas > 5 %}
+            <div class="card-footer bg-white text-center p-2">
+                <a href="{{ url_for('inventario') }}" class="btn btn-outline-danger btn-sm w-100">
+                    Ver los {{ total_alertas - 5 }} faltantes en Inventario
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

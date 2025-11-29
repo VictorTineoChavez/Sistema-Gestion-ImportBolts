@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<style>
+    .select2-container .select2-selection--single {
+        height: 38px !important;
+        border: 1px solid #dee2e6;
+    }
+    .select2-selection__rendered {
+        line-height: 36px !important;
+        padding-left: 12px !important;
+    }
+    .select2-selection__arrow {
+        height: 36px !important;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3><i class="bi bi-file-earmark-text"></i> Nueva Cotización</h3>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">Volver al Inicio</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5 col-md-12">
+        
+        <div class="card shadow-sm mb-3 border-0">
+            <div class="card-header bg-primary text-white py-2">
+                <h6 class="mb-0 small fw-bold"><i class="bi bi-person-vcard"></i> 1. Datos del Cliente</h6>
+            </div>
+            <div class="card-body bg-light">
+                <div class="row g-2">
+                    <div class="col-md-6 col-12">
+                        <label class="small text-muted mb-1">RUC / DNI *</label>
+                        <input type="text" id="cli_doc" class="form-control form-control-sm" placeholder="Ingrese documento" required>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label class="small text-muted mb-1">Teléfono</label>
+                        <input type="text" id="cli_tel" class="form-control form-control-sm" placeholder="Opcional">
+                    </div>
+                    <div class="col-12">
+                        <label class="small text-muted mb-1">Razón Social / Nombre *</label>
+                        <input type="text" id="cli_nom" class="form-control form-control-sm" placeholder="Nombre del cliente" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="small text-muted mb-1">Dirección Fiscal</label>
+                        <input type="text" id="cli_dir" class="form-control form-control-sm" placeholder="Dirección para la factura">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-3 border-0">
+            <div class="card-header bg-secondary text-white py-2">
+                <h6 class="mb-0 small fw-bold"><i class="bi bi-box-seam"></i> 2. Agregar Producto</h6>
+            </div>
+            <div class="card-body">
+                
+                <div class="mb-2">
+                    <label class="small text-muted mb-1 fw-bold">1. Filtrar por Categoría</label>
+                    <select class="form-select form-select-sm" id="filtroCategoriaVenta">
+                        <option value="" selected>-- Ver Todas --</option>
+                        {% for c in categorias %} <option value="{{ c.id }}">{{ c.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="small text-muted mb-1 fw-bold">2. Seleccionar Producto</label>
+                    <select class="form-select" id="productoSelect" style="width: 100%;">
+                        <option value="" disabled selected>-- Primero seleccione categoría --</option>
+                        </select>
+                </div>
+
+                <div class="row g-2 mb-2">
+                    <div class="col-4"><input type="text" id="info_sku" class="form-control form-control-sm bg-light text-muted" readonly placeholder="SKU"></div>
+                    <div class="col-4"><input type="text" id="info_stock" class="form-control form-control-sm bg-light fw-bold" readonly placeholder="Stock"></div>
+                    <div class="col-4"><input type="number" id="cantidadInput" class="form-control form-control-sm border-primary fw-bold" value="1" min="1"></div>
+                </div>
+
+                <div id="panelResultado" class="alert p-2 mb-2 text-center rounded-3" style="display:none; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                    <strong class="fs-5 text-dark" id="txt_precio_final">S/ 0.00</strong> 
+                    <span class="small text-muted" id="txt_tipo_precio">(--)</span>
+                    <div id="badge_semaforo" class="badge bg-secondary d-block mt-2 py-2">--</div>
+                </div>
+
+                <button class="btn btn-success w-100 btn-sm fw-bold py-2" id="btnAgregar" disabled>
+                    <i class="bi bi-cart-plus"></i> AGREGAR A LISTA
+                </button>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="small fw-bold border-bottom pb-2 mb-3">3. Logística y Entrega</h6>
+                
+                <div class="mb-3">
+                    <label class="small text-muted mb-1">Método de Entrega</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="entrega" id="radioRecojo" value="Recojo" checked>
+                        <label class="btn btn-outline-primary btn-sm" for="radioRecojo"><i class="bi bi-shop"></i> Tienda</label>
+
+                        <input type="radio" class="btn-check" name="entrega" id="radioEnvio" value="Envio">
+                        <label class="btn btn-outline-primary btn-sm" for="radioEnvio"><i class="bi bi-truck"></i> Envío</label>
+                    </div>
+                </div>
+
+                <div class="mb-3" id="divDireccionEnvio" style="display:none;">
+                    <label class="small text-muted mb-1">Dirección de Entrega</label>
+                    <input type="text" id="inputDireccionEnvio" class="form-control form-control-sm" placeholder="Calle, Número, Distrito...">
+                </div>
+
+                <div class="mb-0">
+                    <label class="small text-muted fw-bold mb-1 text-danger">Fecha Estimada *</label>
+                    <input type="date" id="inputFechaEntrega" class="form-control form-control-sm border-danger">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7 col-md-12">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-primary fw-light">Cotización en Curso</h5>
+                <span class="badge bg-light text-dark border">Borrador</span>
+            </div>
+            
+            <div class="card-body p-0 d-flex flex-column">
+                <div class="table-responsive flex-grow-1" style="max-height: 500px; overflow-y: auto;">
+                    <table class="table table-striped table-hover mb-0 small align-middle">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 40%;">Producto</th>
+                                <th class="text-center">Cant.</th>
+                                <th class="text-center">Tipo</th>
+                                <th class="text-end">P.Unit</th>
+                                <th class="text-end">Total</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCarrito">
+                            </tbody>
+                    </table>
+                    
+                    <div id="msgVacio" class="text-center text-muted py-5 my-5">
+                        <i class="bi bi-cart-x display-4 text-secondary opacity-25"></i>
+                        <p class="mt-2 small">Busque un producto y agréguelo a la lista.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-top p-3">
+                <div class="row justify-content-end">
+                    <div class="col-md-6 col-12">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <td class="text-end text-muted">Subtotal:</td>
+                                <td class="text-end fw-bold" id="lblSubtotal">S/ 0.00</td>
+                            </tr>
+                            <tr>
+                                <td class="text-end text-muted">IGV (18%):</td>
+                                <td class="text-end fw-bold text-danger" id="lblIGV">S/ 0.00</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="text-end fs-5 fw-bold text-dark pt-2">TOTAL:</td>
+                                <td class="text-end fs-5 fw-bold text-primary pt-2" id="lblTotal">S/ 0.00</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-primary btn-lg" onclick="guardarVenta()">
+                        <i class="bi bi-save"></i> CONFIRMAR Y GENERAR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Inicializar Select2 al cargar
+    $(document).ready(function() {
+        $('#productoSelect').select2({
+            placeholder: "-- Buscar por Nombre o SKU --",
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return "No se encontraron productos";
+                }
+            },
+            // Lógica personalizada para buscar también en el SKU (atributo data-sku)
+            matcher: function(params, data) {
+                // Si no hay término de búsqueda, mostrar todo
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+
+                // Buscar en el texto visible (Nombre)
+                if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                    return data;
+                }
+
+                // Buscar en el atributo data-sku (SKU)
+                var sku = $(data.element).data('sku');
+                if (sku && sku.toString().toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                    return data;
+                }
+
+                // No hay coincidencia
+                return null;
+            }
+        });
+
+        // CONECTAR SELECT2 CON LA LÓGICA EXISTENTE
+        // Cuando cambia la selección en Select2, ejecutamos actualizarProd
+        $('#productoSelect').on('select2:select', function (e) {
+            actualizarProd();
+        });
+        
+        // Limpiar campos si se borra la selección
+        $('#productoSelect').on('select2:clear', function (e) {
+            document.getElementById('info_sku').value = "";
+            document.getElementById('info_stock').value = "";
+            document.getElementById('panelResultado').style.display = 'none';
+            document.getElementById('btnAgregar').disabled = true;
+        });
+    });
+
+    let carrito = [];
+    let itemTemp = {};
+
+    // Elementos Nativos
+    const inpCant = document.getElementById('cantidadInput');
+    const btnAdd = document.getElementById('btnAgregar');
+
+    // Event Listeners (Select ya no usa 'change' nativo, usa el de jQuery arriba)
+    inpCant.addEventListener('input', calcularPrecio);
+    
+    // Toggle Dirección
+    document.querySelectorAll('input[name="entrega"]').forEach(r => {
+        r.addEventListener('change', e => {
+            const inputDir = document.getElementById('inputDireccionEnvio');
+            const divDir = document.getElementById('divDireccionEnvio');
+            
+            if(e.target.value === 'Envio') {
+                divDir.style.display = 'block';
+                if(!inputDir.value) inputDir.value = document.getElementById('cli_dir').value;
+            } else {
+                divDir.style.display = 'none';
+            }
+        });
+    });
+
+    function actualizarProd() {
+        // Usamos jQuery para obtener la opción seleccionada porque Select2 cambia el DOM
+        const opt = $('#productoSelect').find(':selected');
+        const val = $('#productoSelect').val();
+
+        if(!val) return;
+
+        // Llenar campos informativos (usando data() de jQuery o atributos nativos)
+        document.getElementById('info_sku').value = opt.data('sku');
+        document.getElementById('info_stock').value = opt.data('stock');
+        
+        calcularPrecio();
+    }
+
+    function calcularPrecio() {
+        const opt = $('#productoSelect').find(':selected');
+        const val = $('#productoSelect').val();
+        
+        if(!val) return;
+
+        const cant = parseInt(inpCant.value) || 0;
+        const stock = parseInt(opt.data('stock'));
+        
+        // --- REGLA DE PRECIOS ---
+        let precio = parseFloat(opt.data('punit'));
+        let tipo = "Unidad";
+        const unid_caja = 100; 
+
+        if(cant >= 12 && cant < (unid_caja/2)) {
+            precio = parseFloat(opt.data('pdocena'));
+            tipo = "Docena";
+        } else if (cant >= (unid_caja/2)) {
+            precio = parseFloat(opt.data('pcaja'));
+            tipo = "Caja";
+        }
+
+        // --- ACTUALIZAR UI PANEL ---
+        const panel = document.getElementById('panelResultado');
+        const badge = document.getElementById('badge_semaforo');
+        const txtPrecio = document.getElementById('txt_precio_final');
+        const txtTipo = document.getElementById('txt_tipo_precio');
+
+        panel.style.display = 'block';
+        txtPrecio.innerText = `S/ ${precio.toFixed(2)}`;
+        txtTipo.innerText = `(${tipo})`;
+
+        // Validar Stock
+        if(cant > stock) {
+            badge.className = 'badge bg-danger w-100';
+            badge.innerText = 'STOCK INSUFICIENTE';
+            btnAdd.disabled = true;
+        } else if (cant <= 0) {
+            badge.className = 'badge bg-secondary w-100';
+            badge.innerText = 'CANTIDAD INVÁLIDA';
+            btnAdd.disabled = true;
+        } else {
+            badge.className = 'badge bg-success w-100';
+            badge.innerText = 'OK: LISTO PARA AGREGAR';
+            btnAdd.disabled = false;
+        }
+
+        // Objeto temporal
+        itemTemp = {
+            id: val,
+            nombre: opt.text().trim(), // Obtener texto visible del select
+            cantidad: cant,
+            precio: precio,
+            tipo_precio: tipo,
+            subtotal: cant * precio
+        };
+    }
+
+    // Agregar al Carrito
+    btnAdd.addEventListener('click', () => {
+        carrito.push(itemTemp);
+        renderizarTabla();
+        
+        // Resetear
+        inpCant.value = 1;
+        document.getElementById('panelResultado').style.display = 'none';
+        btnAdd.disabled = true;
+        
+        // Limpiar Select2
+        $('#productoSelect').val(null).trigger('change');
+        document.getElementById('info_sku').value = "";
+        document.getElementById('info_stock').value = "";
+    });
+
+    function renderizarTabla() {
+        const tbody = document.getElementById('tablaCarrito');
+        const msgVacio = document.getElementById('msgVacio');
+        tbody.innerHTML = '';
+        let subtotalGeneral = 0;
+
+        if(carrito.length > 0) { msgVacio.style.display = 'none'; } 
+        else { msgVacio.style.display = 'block'; }
+
+        carrito.forEach((item, index) => {
+            subtotalGeneral += item.subtotal;
+            tbody.innerHTML += `
+                <tr>
+                    <td><span class="d-block fw-bold text-truncate" style="max-width: 200px;">${item.nombre}</span></td>
+                    <td class="text-center">${item.cantidad}</td>
+                    <td class="text-center"><span class="badge bg-light text-dark border">${item.tipo_precio}</span></td>
+                    <td class="text-end">S/ ${item.precio.toFixed(2)}</td>
+                    <td class="text-end fw-bold">S/ ${item.subtotal.toFixed(2)}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm text-danger p-0" onclick="eliminar(${index})" title="Quitar"><i class="bi bi-trash-fill"></i></button>
+                    </td>
+                </tr>`;
+        });
+
+        const igv = subtotalGeneral * 0.18;
+        const total = subtotalGeneral + igv;
+
+        document.getElementById('lblSubtotal').innerText = `S/ ${subtotalGeneral.toFixed(2)}`;
+        document.getElementById('lblIGV').innerText = `S/ ${igv.toFixed(2)}`;
+        document.getElementById('lblTotal').innerText = `S/ ${total.toFixed(2)}`;
+    }
+
+    function eliminar(index) {
+        carrito.splice(index, 1);
+        renderizarTabla();
+    }
+
+    function guardarVenta() {
+        const ruc = document.getElementById('cli_doc').value;
+        const nombre = document.getElementById('cli_nom').value;
+        const fecha = document.getElementById('inputFechaEntrega').value;
+
+        if(!ruc || !nombre) { alert("⚠️ Faltan datos del cliente."); return; }
+        if(!fecha) { alert("⚠️ Seleccione Fecha de Entrega."); return; }
+        if(carrito.length === 0) { alert("⚠️ El carrito está vacío."); return; }
+
+        let subtotal = carrito.reduce((s, i) => s + i.subtotal, 0);
+        let igv = subtotal * 0.18;
+        let total = subtotal + igv;
+        
+        let tipoEntrega = document.querySelector('input[name="entrega"]:checked').value;
+        let dirEntrega = (tipoEntrega === 'Envio') ? document.getElementById('inputDireccionEnvio').value : 'Tienda';
+
+        const payload = {
+            cliente_ruc: ruc,
+            cliente_nombre: nombre,
+            cliente_tel: document.getElementById('cli_tel').value,
+            cliente_dir: document.getElementById('cli_dir').value,
+            items: carrito,
+            subtotal: subtotal,
+            igv: igv,
+            total: total,
+            tipo_entrega: tipoEntrega,
+            direccion_entrega: dirEntrega,
+            fecha_entrega: fecha
+        };
+
+        fetch('/nueva_venta', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.status === 'success') {
+                if(confirm("✅ Venta guardada. ¿Descargar Word?")) {
+                    window.location.href = `/descargar_cotizacion/${data.order_id}`;
+                } else {
+                    window.location.href = "/";
+                }
+            } else {
+                alert("❌ Error: " + data.msg);
+            }
+        })
+        .catch(err => { console.error(err); alert("❌ Error de conexión."); });
+    }
+
+    // LÓGICA DE CASCADA (CATEGORÍA -> PRODUCTOS)
+    $('#filtroCategoriaVenta').on('change', function() {
+        const catId = $(this).val();
+        const selectProd = $('#productoSelect');
+        
+        // 1. Limpiar y mostrar "Cargando..."
+        selectProd.empty(); 
+        selectProd.append(new Option('Cargando productos...', '', false, false));
+        
+        if (catId) {
+            fetch(`/api/productos_por_categoria/${catId}`)
+                .then(r => r.json())
+                .then(data => {
+                    // 2. Limpiar de nuevo para poner los resultados
+                    selectProd.empty();
+                    selectProd.append(new Option('-- Seleccione o Escriba --', '', true, true));
+                    
+                    if (data.productos.length === 0) {
+                        // Avisar si no hay nada (Ayuda a detectar el error)
+                        console.warn("La API devolvió 0 productos.");
+                    }
+
+                    data.productos.forEach(p => {
+                        // Creamos la opción con los datos ocultos
+                        const option = new Option(`${p.sku} - ${p.nombre} (Stock: ${p.stock})`, p.id, false, false);
+                        $(option).attr({
+                            'data-sku': p.sku,
+                            'data-stock': p.stock,
+                            'data-punit': p.p_unidad,
+                            'data-pdocena': p.p_docena,
+                            'data-pcaja': p.p_caja
+                        });
+                        selectProd.append(option);
+                    });
+                    
+                    // 3. Actualizar Select2
+                    selectProd.trigger('change'); 
+                })
+                .catch(err => {
+                    console.error("Error cargando productos:", err);
+                    selectProd.empty().append(new Option('Error al cargar', '', false, false));
+                });
+        }
+    });
+
+</script>
+{% endblock %}

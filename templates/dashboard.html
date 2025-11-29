@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-light">Bienvenido, <b>{{ session.get('username') }}</b></h2>
+        <p class="text-muted">Panel de Control General</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100 border-primary border-start border-4">
+            <div class="card-body">
+                <h5 class="card-title text-primary">Ventas Hoy</h5>
+                <h2 class="display-6 fw-bold">S/ 0.00</h2>
+                <p class="card-text text-muted small">0 pedidos registrados</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 border-warning border-start border-4">
+            <div class="card-body">
+                <h5 class="card-title text-warning">Por Atender</h5>
+                <h2 class="display-6 fw-bold">0</h2>
+                <p class="card-text text-muted small">Pedidos pendientes en almacén</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100 border-danger border-start border-4">
+            <div class="card-body">
+                <h5 class="card-title text-danger">Alertas Stock</h5>
+                <h2 class="display-6 fw-bold">1</h2>
+                <p class="card-text text-muted small">Productos requieren reposición</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h4>Accesos Rápidos</h4>
+        <hr>
+    </div>
+
+    {% if session.get('role') in ['admin', 'vendedor'] %}
+    <div class="col-md-3 mb-3">
+        <a href="#" class="btn btn-outline-primary w-100 py-4">
+            <i class="bi bi-cart-plus fs-1 d-block mb-2"></i>
+            Nueva Cotización
+        </a>
+    </div>
+    {% endif %}
+
+    {% if session.get('role') in ['admin', 'almacen'] %}
+    <div class="col-md-3 mb-3">
+        <a href="#" class="btn btn-outline-success w-100 py-4">
+            <i class="bi bi-box-seam fs-1 d-block mb-2"></i>
+            Revisar Inventario
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

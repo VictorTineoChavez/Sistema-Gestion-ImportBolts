@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>👥 Gestión de Usuarios</h2>
+    <button class="btn btn-primary" onclick="abrirModalCrear()">
+        <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+    </button>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre Completo</th>
+                    <th>Usuario (Login)</th>
+                    <th>Rol / Permisos</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td class="fw-bold text-primary">{{ u.nombre_completo }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>
+                        {% if u.role == 'admin' %}
+                            <span class="badge bg-dark">Gerencia Total</span>
+                        {% elif u.role == 'administracion' %}
+                            <span class="badge bg-warning text-dark">Administración</span>
+                        {% elif u.role == 'vendedor' %}
+                            <span class="badge bg-success">Ventas</span>
+                        {% elif u.role == 'almacen' %}
+                            <span class="badge bg-info text-dark">Almacén</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-1" 
+                                onclick="abrirModalEditar('{{u.id}}', '{{u.nombre_completo}}', '{{u.username}}', '{{u.role}}')"
+                                title="Editar Datos / Resetear Clave">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        
+                        {% if u.id != session.get('user_id') %}
+                        <a href="{{ url_for('eliminar_usuario', user_id=u.id) }}" 
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('¿Estás seguro de ELIMINAR a este usuario? No podrá acceder más.');"
+                           title="Eliminar Cuenta">
+                            <i class="bi bi-trash"></i>
+                        </a>
+                        {% else %}
+                        <button class="btn btn-sm btn-secondary" disabled title="No puedes borrarte a ti mismo"><i class="bi bi-trash"></i></button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('guardar_usuario') }}" method="POST">
+                <input type="hidden" name="user_id" id="userId"> <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title" id="modalTitulo">Nuevo Usuario</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre Completo</label>
+                        <input type="text" name="nombre_completo" id="inputNombre" class="form-control" placeholder="Ej: Juan Pérez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Usuario (Login)</label>
+                        <input type="text" name="username" id="inputUser" class="form-control" placeholder="Ej: jperez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contraseña</label>
+                        <input type="text" name="password" class="form-control" placeholder="Dejar vacío para mantener la actual">
+                        <div class="form-text text-muted" id="textPassInfo">
+                            * Para nuevos usuarios es obligatoria. Para editar, solo escriba si desea cambiarla.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Rol</label>
+                        <select name="role" id="selectRol" class="form-select" required>
+                            <option value="vendedor">Vendedor</option>
+                            <option value="almacen">Almacén</option>
+                            <option value="administracion">Administración</option>
+                            <option value="admin">Gerencia / Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardar">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalCrear() {
+        // Limpiar formulario
+        document.getElementById('userId').value = ""; // ID vacío = Crear
+        document.getElementById('inputNombre').value = "";
+        document.getElementById('inputUser').value = "";
+        document.getElementById('selectRol').value = "vendedor";
+        
+        // Textos visuales
+        document.getElementById('modalTitulo').innerText = "Crear Nuevo Usuario";
+        document.getElementById('btnGuardar').innerText = "Crear Usuario";
+        document.getElementById('textPassInfo').innerText = "* Obligatoria para crear cuenta.";
+        
+        new bootstrap.Modal(document.getElementById('modalUsuario')).show();
+    }
+
+    function abrirModalEditar(id, nombre, user, rol) {
+        // Llenar con datos existentes
+        document.getElementById('userId').value = id; // ID lleno = Editar
+        document.getElementById('inputNombre').value = nombre;
+        document.getElementById('inputUser').value = user;
+        document.getElementById('selectRol').value = rol;
+        
+        // Textos visuales
+        document.getElementById('modalTitulo').innerText = "Editar Usuario / Resetear Clave";
+        document.getElementById('btnGuardar').innerText = "Guardar Cambios";
+        document.getElementById('textPassInfo').innerText = "⚠️ Escriba aquí SOLO si desea cambiar la contraseña del usuario.";
+        
+        new bootstrap.Modal(document.getElementById('modalUsuario')).show();
+    }
+</script>
+{% endblock %}

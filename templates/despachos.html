@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🚛 Centro de Despachos</h2>
+    
+    <div class="btn-group">
+        <a href="{{ url_for('despachos', ordenar_por='urgencia') }}" 
+           class="btn btn-outline-danger {% if orden_actual == 'urgencia' %}active{% endif %}">
+           <i class="bi bi-calendar-event"></i> Priorizar por Urgencia
+        </a>
+        <a href="{{ url_for('despachos', ordenar_por='ganancia') }}" 
+           class="btn btn-outline-success {% if orden_actual == 'ganancia' %}active{% endif %}">
+           <i class="bi bi-cash-stack"></i> Priorizar por Ganancia
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    {% for o in ordenes %}
+    <div class="col-md-6 mb-3">
+        {% set es_urgente = o.fecha_entrega <= hoy %}
+        
+        <div class="card border-start border-4 shadow-sm {% if es_urgente %}border-danger bg-light{% else %}border-info{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h5 class="card-title fw-bold">
+                        {% if es_urgente %}<span class="badge bg-danger">URGENTE</span>{% endif %}
+                        Pedido #{{ o.id }}
+                    </h5>
+                    <div class="text-end">
+                        <small class="text-muted d-block">Entrega Estimada:</small>
+                        <strong class="{% if es_urgente %}text-danger{% else %}text-primary{% endif %}">
+                            {{ o.fecha_entrega.strftime('%d/%m/%Y') }}
+                        </strong>
+                    </div>
+                </div>
+                
+                <hr class="my-2">
+                
+                <div class="d-flex justify-content-between small mb-2">
+                    <span><strong>Cliente:</strong> {{ o.cliente.nombre }}</span>
+                    <span><strong>Tipo:</strong> {{ o.tipo_entrega }}</span>
+                </div>
+
+                <div class="mb-2 pb-2 border-bottom">
+                    <small class="text-muted d-block">Vendedor Responsable:</small>
+                    <span class="badge bg-white text-dark border">
+                        <i class="bi bi-person-badge"></i> {{ o.vendedor.nombre_completo }}
+                    </span>
+                </div>
+                
+                {% if o.tipo_entrega == 'Envio' %}
+                <div class="alert alert-secondary py-1 px-2 small mb-2">
+                    <i class="bi bi-geo-alt-fill"></i> {{ o.direccion_envio }}
+                </div>
+                {% endif %}
+                
+                <ul class="list-group list-group-flush mb-3 small">
+                    {% for d in o.details %}
+                    <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                        {{ d.product.nombre }}
+                        <span class="badge bg-secondary rounded-pill">{{ d.cantidad }} un.</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-success fs-5">S/ {{ "%.2f"|format(o.total) }}</span>
+                    
+                    {% if o.estado == 'Pendiente' %}
+                        <a href="{{ url_for('cambiar_estado', order_id=o.id, nuevo_estado='Despachado') }}" 
+                           class="btn btn-primary btn-sm">
+                           <i class="bi bi-box-seam"></i> Marcar Despachado
+                        </a>
+                    {% elif o.estado == 'Despachado' %}
+                        <a href="{{ url_for('cambiar_estado', order_id=o.id, nuevo_estado='Entregado') }}" 
+                           class="btn btn-success btn-sm">
+                           <i class="bi bi-check-lg"></i> Confirmar Entrega
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center text-muted py-5">
+        <h4><i class="bi bi-check-circle"></i> Todo al día</h4>
+        <p>No hay pedidos pendientes de despacho.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

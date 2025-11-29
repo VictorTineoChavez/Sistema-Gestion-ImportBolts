@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📋 Historial de Ventas</h2>
+    <span class="badge bg-primary fs-6">{{ ordenes|length }} Registros encontrados</span>
+</div>
+
+<div class="card mb-4 bg-light border-0 shadow-sm">
+    <div class="card-body py-3">
+        <form class="row g-2 align-items-end" method="GET" action="{{ url_for('historial_ventas') }}">
+            
+            <div class="col-md-3">
+                <label class="small fw-bold text-muted">Cliente / RUC</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                    <input type="text" name="busqueda" class="form-control" placeholder="Buscar..." value="{{ request.args.get('busqueda', '') }}">
+                </div>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Estado</label>
+                <select name="estado" class="form-select form-select-sm">
+                    <option value="todos">Todos</option>
+                    <option value="Pendiente" {% if request.args.get('estado') == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="Despachado" {% if request.args.get('estado') == 'Despachado' %}selected{% endif %}>Despachado</option>
+                    <option value="Entregado" {% if request.args.get('estado') == 'Entregado' %}selected{% endif %}>Entregado</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Desde</label>
+                <input type="date" name="fecha_inicio" class="form-control form-control-sm" value="{{ request.args.get('fecha_inicio', '') }}">
+            </div>
+            <div class="col-md-2">
+                <label class="small fw-bold text-muted">Hasta</label>
+                <input type="date" name="fecha_fin" class="form-control form-control-sm" value="{{ request.args.get('fecha_fin', '') }}">
+            </div>
+
+            <div class="col-md-3 text-end">
+                <button type="submit" class="btn btn-primary btn-sm fw-bold px-3">
+                    <i class="bi bi-funnel"></i> Filtrar
+                </button>
+                <a href="{{ url_for('historial_ventas') }}" class="btn btn-outline-secondary btn-sm" title="Limpiar">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover align-middle mb-0 text-nowrap">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th># Pedido</th>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th>Vendedor</th> <th>Entrega Estimada</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in ordenes %}
+                <tr>
+                    <td class="fw-bold text-primary">COT-{{ "%04d"|format(o.id) }}</td>
+                    
+                    <td class="small text-muted">{{ o.fecha.strftime('%d/%m/%y %H:%M') }}</td>
+                    
+                    <td class="fw-bold text-dark text-wrap" style="max-width: 200px;">
+                        {{ o.cliente.nombre }}
+                    </td>
+
+                    <td>
+                        <span class="badge bg-white text-secondary border border-secondary-subtle fw-normal">
+                            <i class="bi bi-person-fill"></i> {{ o.vendedor.username }}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if o.estado != 'Entregado' %}
+                            {% if o.fecha_entrega < hoy %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger">
+                                    <i class="bi bi-exclamation-circle-fill"></i> {{ o.fecha_entrega.strftime('%d/%m/%Y') }}
+                                </span>
+                            {% elif o.fecha_entrega == hoy %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">
+                                    <i class="bi bi-clock-history"></i> Hoy
+                                </span>
+                            {% else %}
+                                <span class="text-muted small"><i class="bi bi-calendar"></i> {{ o.fecha_entrega.strftime('%d/%m/%Y') }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-success small"><i class="bi bi-check-all"></i> Completado</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-end fw-bold">S/ {{ "%.2f"|format(o.total) }}</td>
+
+                    <td class="text-center">
+                        {% if o.estado == 'Pendiente' %}
+                            <span class="badge bg-warning text-dark">Pendiente</span>
+                        {% elif o.estado == 'Despachado' %}
+                            <span class="badge bg-info text-dark">Despachado</span>
+                        {% else %}
+                            <span class="badge bg-success">Entregado</span>
+                        {% endif %}
+                    </td>
+
+                    <td class="text-center">
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary border-0" 
+                                    onclick="verDetalle('{{o.id}}', '{{o.cliente.nombre}}', '{{o.tipo_entrega}}', '{{o.total}}')"
+                                    title="Ver Detalle">
+                                <i class="bi bi-eye-fill"></i>
+                            </button>
+                            <a href="{{ url_for('descargar_cotizacion', order_id=o.id) }}" 
+                               class="btn btn-sm btn-outline-primary border-0" 
+                               title="Descargar Word">
+                                <i class="bi bi-file-word-fill"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox display-4 opacity-25"></i>
+                        <p class="mt-2">No se encontraron ventas.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDetalle" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Resumen Pedido #<span id="det_id"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Cliente</small>
+                        <strong id="det_cliente" class="fs-6"></strong>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted d-block">Método Entrega</small>
+                        <strong id="det_entrega" class="fs-6 text-primary"></strong>
+                    </div>
+                </div>
+                <div class="alert alert-secondary text-center mb-0">
+                    <small>Monto Total</small><br>
+                    <span class="fs-3 fw-bold text-dark">S/ <span id="det_total"></span></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+                <a id="btn_descarga_modal" href="#" class="btn btn-primary">
+                    <i class="bi bi-cloud-download"></i> Descargar Documento
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function verDetalle(id, cliente, entrega, total) {
+        document.getElementById('det_id').innerText = id;
+        document.getElementById('det_cliente').innerText = cliente;
+        document.getElementById('det_entrega').innerText = entrega;
+        document.getElementById('det_total').innerText = parseFloat(total).toFixed(2);
+        document.getElementById('btn_descarga_modal').href = `/descargar_cotizacion/${id}`;
+        new bootstrap.Modal(document.getElementById('modalDetalle')).show();
+    }
+</script>
+{% endblock %}

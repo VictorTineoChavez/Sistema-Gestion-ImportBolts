@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>💰 Gestión de Cobranzas</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('cobranzas', ver='deudas') }}" class="btn btn-outline-danger active">Ver Deudores</a>
+        <a href="{{ url_for('cobranzas', ver='todos') }}" class="btn btn-outline-secondary">Ver Historial Completo</a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Pedido</th>
+                    <th>Cliente / Contacto</th>
+                    <th>Vendedor Resp.</th>
+                    <th class="text-end">Total</th>
+                    <th class="text-center">Estado Pago</th>
+                    <th class="text-end text-danger">Deuda Restante</th>
+                    <th class="text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in ordenes %}
+                {% set deuda = o.total - o.monto_pagado %}
+                {% set porcentaje = (o.monto_pagado / o.total) * 100 if o.total > 0 else 0 %}
+
+                <tr>
+                    <td class="fw-bold">COT-{{ "%04d"|format(o.id) }}</td>
+                    
+                    <td>
+                        <div class="fw-bold">{{ o.cliente.nombre }}</div>
+                        <div class="small text-muted">
+                            <i class="bi bi-telephone-fill"></i> {{ o.cliente.telefono or 'Sin Tlf.' }}
+                        </div>
+                    </td>
+
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            {{ o.vendedor.username }}
+                        </span>
+                    </td>
+
+                    <td class="text-end">S/ {{ "%.2f"|format(o.total) }}</td>
+
+                    <td style="width: 15%;">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>{{ o.estado_pago }}</span>
+                            <span>{{ "%.0f"|format(porcentaje) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar {% if porcentaje == 100 %}bg-success{% else %}bg-warning{% endif %}" 
+                                 role="progressbar" style="width: {{ porcentaje }}%;"></div>
+                        </div>
+                    </td>
+
+                    <td class="text-end fw-bold {% if deuda > 0 %}text-danger{% else %}text-success{% endif %}">
+                        S/ {{ "%.2f"|format(deuda) }}
+                    </td>
+
+                    <td class="text-center">
+                        {% if deuda > 0.1 %}
+                        <button class="btn btn-sm btn-success fw-bold" 
+                                onclick="abrirCobro('{{o.id}}', '{{o.cliente.nombre}}', '{{deuda}}')">
+                            <i class="bi bi-cash-coin"></i> COBRAR
+                        </button>
+                        {% else %}
+                        <span class="text-success small"><i class="bi bi-check-circle-fill"></i> Cancelado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center py-5 text-muted">No hay deudas pendientes. ¡Buen trabajo!</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCobro" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('registrar_pago') }}" method="POST">
+                <input type="hidden" name="order_id" id="cobro_id">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Registrar Cobro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Cliente: <strong id="cobro_cliente"></strong></p>
+                    
+                    <div class="alert alert-danger text-center">
+                        Deuda Actual: <strong class="fs-4">S/ <span id="cobro_deuda"></span></strong>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Monto a Pagar (S/)</label>
+                        <div class="input-group">
+                            <input type="number" name="monto" id="inputMonto" class="form-control form-control-lg fw-bold text-success" step="0.01" required>
+                            <button type="button" class="btn btn-outline-secondary" onclick="pagarTodo()">Todo</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Método de Pago</label>
+                        <select name="metodo" class="form-select">
+                            <option>Transferencia BCP</option>
+                            <option>Yape / Plin</option>
+                            <option>Efectivo</option>
+                            <option>Cheque</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Nota / Nro Operación</label>
+                        <input type="text" name="nota" class="form-control" placeholder="Ej: Operación 123456">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success w-100 fw-bold">Confirmar Pago</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    let deudaActual = 0;
+
+    function abrirCobro(id, cliente, deuda) {
+        document.getElementById('cobro_id').value = id;
+        document.getElementById('cobro_cliente').innerText = cliente;
+        document.getElementById('cobro_deuda').innerText = parseFloat(deuda).toFixed(2);
+        deudaActual = parseFloat(deuda);
+        
+        // Limpiar input
+        document.getElementById('inputMonto').value = '';
+        
+        new bootstrap.Modal(document.getElementById('modalCobro')).show();
+    }
+
+    function pagarTodo() {
+        document.getElementById('inputMonto').value = deudaActual.toFixed(2);
+    }
+</script>
+{% endblock %}

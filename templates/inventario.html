@@ -1,0 +1,347 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>📦 Gestión de Inventario</h2>
+    <div class="d-flex gap-2">
+        {% if session.get('role') in ['admin', 'almacen', 'administracion'] %}
+        <a href="{{ url_for('ver_kardex') }}" class="btn btn-outline-dark">
+            <i class="bi bi-clock-history"></i> Ver Kardex
+        </a>
+        {% endif %}
+
+        {% if session.get('role') in ['admin', 'almacen'] %}
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalImportar">
+            <i class="bi bi-file-earmark-excel"></i> Importar
+        </button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNuevo">
+            <i class="bi bi-plus-lg"></i> Nuevo Producto
+        </button>
+        {% endif %}
+    </div>
+
+    <td class="text-center text-nowrap">
+        {% if session.get('role') in ['admin', 'almacen'] %}
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline-primary" onclick="abrirEditar(...)"><i class="bi bi-pencil"></i></button>
+                <a href="..." class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+            </div>
+        {% else %}
+            <span class="text-muted small"><i class="bi bi-lock"></i></span>
+        {% endif %}
+    </td>
+</div>
+
+<div class="card mb-4 bg-light border-0 shadow-sm">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+                    <input type="text" id="buscadorInput" class="form-control border-start-0" placeholder="Buscar por SKU o Nombre...">
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <select id="filtroCategoria" class="form-select">
+                    <option value="todos">Todas las Categorías</option>
+                    {% for c in categorias %}
+                    <option value="{{ c.nombre }}">{{ c.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <div class="form-check form-switch d-flex align-items-center justify-content-end">
+                    <input class="form-check-input me-2" type="checkbox" id="checkStockBajo" style="width: 3em; height: 1.5em; cursor: pointer;">
+                    <label class="form-check-label fw-bold text-danger" for="checkStockBajo">Solo Stock Bajo</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-hover table-striped mb-0 align-middle">
+            <thead class="table-dark text-nowrap">
+                <tr>
+                    <th>SKU</th>
+                    <th>Producto</th>
+                    <th>Categoría</th>
+                    <th class="text-center">Stock</th>
+                    <th class="text-end">P. Unidad</th>
+                    <th class="text-end">P. Caja</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tablaCuerpo">
+                {% for p in productos %}
+                <tr class="fila-producto" data-categoria="{{ p.categoria }}">
+                    <td class="fw-bold text-primary">{{ p.sku }}</td>
+                    <td>{{ p.nombre }}</td>
+                    <td><span class="badge bg-info text-dark">{{ p.categoria }}</span></td>
+                    
+                    <td class="text-center">
+                        {% if p.stock_actual < 100 %}
+                            <span class="badge bg-danger fs-6 stock-badge">{{ p.stock_actual }}</span>
+                        {% else %}
+                            <span class="badge bg-success fs-6 stock-badge">{{ p.stock_actual }}</span>
+                        {% endif %}
+                        
+                        {% if session.get('role') in ['admin', 'almacen'] %}
+                        <button class="btn btn-sm btn-light border ms-1" title="Ajustar Stock"
+                                onclick="abrirAjuste('{{p.id}}', '{{p.nombre}}')">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </button>
+                        {% endif %}
+                    </td>
+                    
+                    <td class="text-end">S/ {{ "%.2f"|format(p.precio_unidad) }}</td>
+                    <td class="text-end">S/ {{ "%.2f"|format(p.precio_caja) }}</td>
+                    
+                    <td class="text-center text-nowrap">
+                        {% if session.get('role') == 'admin' %}
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="abrirEditar('{{p.id}}', '{{p.nombre}}', '{{p.stock_actual}}', '{{p.precio_unidad}}', '{{p.precio_caja}}')">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <a href="{{ url_for('eliminar_producto', prod_id=p.id) }}" 
+                                class="btn btn-sm btn-outline-danger" 
+                                onclick="return confirm('⚠️ ¿Estás seguro?');">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
+                        {% else %}
+                            <span class="text-muted small"><i class="bi bi-shield-lock"></i> Protegido</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center py-4 text-muted">No hay productos.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNuevo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('nuevo_producto') }}" method="POST">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Registrar Nuevo Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-12 mb-2">
+                            <label class="form-label small fw-bold">Categoría</label>
+                            <div class="input-group">
+                                <select name="categoria_id" id="selectCategoria" class="form-select" required onchange="generarSKU()">
+                                    <option value="" selected disabled>-- Seleccione --</option>
+                                    {% for c in categorias %}
+                                    <option value="{{ c.id }}">{{ c.nombre }} ({{ c.prefijo }})</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNuevaCat">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-primary">SKU (Automático)</label>
+                            <input name="sku" id="inputSKU" class="form-control fw-bold text-primary" required placeholder="---">
+                            <div class="form-text" style="font-size: 0.7rem">Se puede editar si es necesario</div>
+                        </div>
+
+                        <div class="col-12"><label class="form-label small">Nombre Descripción</label><input name="nombre" class="form-control" required></div>
+                        <div class="col-4"><label class="form-label small">Stock Inicial</label><input type="number" name="stock" class="form-control" required></div>
+                        <div class="col-4"><label class="form-label small">Precio Uni.</label><input type="number" step="0.01" name="p_unidad" class="form-control" required></div>
+                        <div class="col-4"><label class="form-label small">Precio Caja</label><input type="number" step="0.01" name="p_caja" class="form-control" required></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success w-100">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalNuevaCat" tabindex="-1" style="z-index: 1060;">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-primary">
+            <form action="{{ url_for('nueva_categoria') }}" method="POST">
+                <div class="modal-header bg-light py-2">
+                    <h6 class="modal-title fw-bold text-primary">Nueva Categoría</h6>
+                    <button type="button" class="btn-close small" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2">
+                        <label class="small fw-bold">Nombre</label>
+                        <input name="cat_nombre" class="form-control form-control-sm" placeholder="Ej: Adhesivos" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="small fw-bold">Prefijo (3 letras)</label>
+                        <input name="cat_prefijo" class="form-control form-control-sm text-uppercase" placeholder="Ej: ADH" maxlength="5" required>
+                        <div class="form-text" style="font-size: 0.7rem">Para generar el SKU (ej: ADH-001)</div>
+                    </div>
+                </div>
+                <div class="modal-footer p-1">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">Crear Categoría</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalEditar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('editar_producto') }}" method="POST">
+                <input type="hidden" name="prod_id" id="edit_id">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Editar Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-2"><label class="form-label small">Nombre</label><input id="edit_nombre" name="nombre" class="form-control"></div>
+                    <div class="row g-2">
+                        <div class="col-4"><label class="form-label small">Stock</label><input id="edit_stock" type="number" name="stock" class="form-control"></div>
+                        <div class="col-4"><label class="form-label small">P. Unidad</label><input id="edit_punidad" type="number" step="0.01" name="p_unidad" class="form-control"></div>
+                        <div class="col-4"><label class="form-label small">P. Caja</label><input id="edit_pcaja" type="number" step="0.01" name="p_caja" class="form-control"></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-warning">Actualizar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalStock" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <form action="{{ url_for('ajustar_stock') }}" method="POST">
+                <input type="hidden" name="prod_id" id="stock_id">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title fs-6">Ajuste de Kardex</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small fw-bold text-primary mb-2" id="stock_nombre">Producto...</p>
+                    <div class="mb-2">
+                        <label class="small text-muted">Tipo</label>
+                        <select name="tipo" class="form-select form-select-sm">
+                            <option value="ingreso">➕ Ingreso</option>
+                            <option value="salida">➖ Salida</option>
+                        </select>
+                    </div>
+                    <div class="mb-2"><label class="small text-muted">Cantidad</label><input type="number" name="cantidad" class="form-control form-control-sm" min="1" required></div>
+                    <div class="mb-0"><label class="small text-muted fw-bold">Motivo *</label><input type="text" name="motivo" class="form-control form-control-sm" required></div>
+                </div>
+                <div class="modal-footer p-1"><button type="submit" class="btn btn-dark w-100 btn-sm">Registrar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalImportar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ url_for('importar_excel') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-spreadsheet"></i> Carga Masiva</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill"></i> Use esta opción para cargar muchos productos a la vez o actualizar stock masivamente.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">1. Descargar Plantilla</label>
+                        <p class="small text-muted mb-2">Si no tiene el formato correcto, descargue el ejemplo:</p>
+                        <a href="{{ url_for('descargar_plantilla') }}" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-download"></i> Descargar Plantilla .xlsx
+                        </a>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">2. Subir Archivo</label>
+                        <input type="file" name="archivo_excel" class="form-control" accept=".xlsx, .xls" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success w-100">Procesar Importación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. FILTRADO
+    const buscador = document.getElementById('buscadorInput');
+    const filtroCat = document.getElementById('filtroCategoria');
+    const checkBajo = document.getElementById('checkStockBajo');
+    const filas = document.querySelectorAll('.fila-producto');
+
+    function filtrar() {
+        const texto = buscador.value.toLowerCase();
+        const cat = filtroCat.options[filtroCat.selectedIndex].text; // Obtener texto visible
+        const soloBajo = checkBajo.checked;
+
+        filas.forEach(fila => {
+            const contenido = fila.innerText.toLowerCase();
+            const categoriaFila = fila.getAttribute('data-categoria');
+            const badgeStock = fila.querySelector('.stock-badge');
+            const stockNum = parseInt(badgeStock.innerText);
+
+            const coincideTexto = contenido.includes(texto);
+            const coincideCat = (cat === 'Todas las Categorías') || (categoriaFila === cat);
+            const coincideStock = (!soloBajo) || (stockNum < 100);
+
+            if (coincideTexto && coincideCat && coincideStock) {
+                fila.style.display = '';
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+    }
+
+    buscador.addEventListener('keyup', filtrar);
+    filtroCat.addEventListener('change', filtrar);
+    checkBajo.addEventListener('change', filtrar);
+
+    // 2. MODALES SIMPLES
+    function abrirEditar(id, nombre, stock, punidad, pcaja) {
+        document.getElementById('edit_id').value = id;
+        document.getElementById('edit_nombre').value = nombre;
+        document.getElementById('edit_stock').value = stock;
+        document.getElementById('edit_punidad').value = punidad;
+        document.getElementById('edit_pcaja').value = pcaja;
+        new bootstrap.Modal(document.getElementById('modalEditar')).show();
+    }
+
+    function abrirAjuste(id, nombre) {
+        document.getElementById('stock_id').value = id;
+        document.getElementById('stock_nombre').innerText = nombre;
+        new bootstrap.Modal(document.getElementById('modalStock')).show();
+    }
+
+    // 3. LOGICA DE SKU AUTOMÁTICO
+    function generarSKU() {
+        const catId = document.getElementById('selectCategoria').value;
+        if(catId) {
+            fetch(`/api/next_sku/${catId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('inputSKU').value = data.sku;
+                });
+        }
+    }
+</script>
+{% endblock %}

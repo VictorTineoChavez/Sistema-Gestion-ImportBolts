@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>📊 Tablero de Control (BI)</h2>
+        <p class="text-muted mb-0 small">Resumen Estratégico</p>
+    </div>
+    <span class="badge bg-dark">{{ session.get('nombre') }}</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="card-title text-white-50 text-uppercase small fw-bold">Ventas Hoy</h6>
+                <h3 class="fw-bold mb-0">S/ {{ "%.2f"|format(ventas_hoy) }}</h3>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="card-title text-white-50 text-uppercase small fw-bold">Acumulado Mes</h6>
+                <h3 class="fw-bold mb-0">S/ {{ "%.2f"|format(ventas_mes) }}</h3>
+                <small class="text-white-50" style="font-size: 0.75rem;">Meta Ref: S/ 50,000</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-dark bg-warning h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="card-title text-black-50 text-uppercase small fw-bold">Predicción Cierre Mes 🔮</h6>
+                <h3 class="fw-bold mb-0">S/ {{ "%.2f"|format(prediccion) }}</h3>
+                <small class="text-dark" style="font-size: 0.75rem;">Basado en tendencia actual</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-danger h-100 shadow-sm border-0">
+            <div class="card-body">
+                <h6 class="card-title text-white-50 text-uppercase small fw-bold">Alertas Stock</h6>
+                <h3 class="fw-bold mb-0">{{ total_alertas }}</h3>
+                <small class="text-white-50" style="font-size: 0.75rem;">Productos críticos (< 100)</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm h-100 border-0">
+            <div class="card-header bg-white fw-bold border-bottom-0 py-3">
+                🏆 Productos Más Vendidos (Top 5)
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <canvas id="chartProductos" style="width: 100%; max-height: 350px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="d-flex flex-column gap-4 h-100">
+            
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold border-bottom py-2 d-flex justify-content-between align-items-center">
+                    <span>🥇 Ranking Vendedores</span>
+                    <button class="btn btn-sm btn-outline-primary py-0" data-bs-toggle="modal" data-bs-target="#modalRanking">
+                        Ver Todos
+                    </button>
+                </div>
+                <ul class="list-group list-group-flush small">
+                    {% for v in ranking[:5] %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+                        <span>
+                            {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}#{{ loop.index }}{% endif %}
+                            {{ v.username }}
+                        </span>
+                        <span class="fw-bold text-primary">S/ {{ "%.0f"|format(v.total_vendido) }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-center text-muted py-3">Sin ventas registradas.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <div class="card shadow-sm border border-danger">
+                <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-bold small">⚠️ Reposición Urgente</span>
+                    <span class="badge bg-white text-danger rounded-pill">{{ total_alertas }}</span>
+                </div>
+                
+                <div class="list-group list-group-flush small">
+                    {% for p in alertas %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+                        <span class="text-truncate" style="max-width: 150px;" title="{{ p.nombre }}">
+                            {{ p.nombre }}
+                        </span>
+                        <span class="fw-bold text-danger">{{ p.stock_actual }} un.</span>
+                    </div>
+                    {% else %}
+                    <div class="list-group-item text-center text-muted py-3">Todo en orden.</div>
+                    {% endfor %}
+                </div>
+
+                {% if total_alertas > 5 %}
+                <div class="card-footer bg-white p-1 text-center">
+                    <a href="{{ url_for('inventario') }}" class="btn btn-link btn-sm text-danger text-decoration-none fw-bold" style="font-size: 0.8rem;">
+                        Ver los {{ total_alertas - 5 }} restantes &rarr;
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRanking" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">🏆 Tabla de Posiciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Vendedor</th>
+                            <th class="text-end">Monto Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in ranking %}
+                        <tr>
+                            <td class="text-center fw-bold">
+                                {% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ v.nombre_completo }}</div>
+                                <small class="text-muted">@{{ v.username }}</small>
+                            </td>
+                            <td class="text-end fw-bold text-success">S/ {{ "%.2f"|format(v.total_vendido) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ctx = document.getElementById('chartProductos').getContext('2d');
+    const etiquetas = [{% for p in top_productos %}"{{ p.nombre }}",{% endfor %}];
+    const datos = [{% for p in top_productos %}{{ p.total_qty }},{% endfor %}];
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: etiquetas,
+            datasets: [{
+                label: 'Unidades Vendidas',
+                data: datos,
+                backgroundColor: '#0d6efd',
+                borderRadius: 4,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { 
+                y: { beginAtZero: true, grid: { borderDash: [2, 2] } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+{% endblock %}
